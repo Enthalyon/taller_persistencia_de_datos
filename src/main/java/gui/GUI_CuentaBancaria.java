@@ -1,6 +1,8 @@
 package gui;
 
-import java.util.List;
+import entidades.CuentaBancaria;
+import enums.TipoDeCuenta;
+import servicios.ServiciosCuentaBancaria;
 import java.util.Scanner;
 
 public class GUI_CuentaBancaria {
@@ -13,15 +15,16 @@ public class GUI_CuentaBancaria {
         serviciosCuentaBancaria = new ServiciosCuentaBancaria();
     }
 
-
     public void iniciar() {
         System.out.println("Bienvenido al sistema de persistencia de personas");
 
         while (running) {
             System.out.println("1. Crear una cuenta bancaria");
-            System.out.println("2. Listar las cuentas bancarias");
-            System.out.println("3. Buscar una cuenta bancaria");
-            System.out.println("5. Salir");
+            System.out.println("2. Buscar una cuenta bancaria");
+            System.out.println("3. Depositar");
+            System.out.println("4. Retirar");
+            System.out.println("5. Transferir");
+            System.out.println("6. Salir");
             Scanner scanner = new Scanner(System.in);
             int opcion = scanner.nextInt();
             seleccion(opcion);
@@ -32,15 +35,21 @@ public class GUI_CuentaBancaria {
     private void seleccion(int seleccion) {
         switch (seleccion) {
             case 1:
-                crearPersona();
+                crearcuenta();
                 break;
             case 2:
-                listarPersonas();
+                buscarCuenta();
                 break;
             case 3:
-                buscarPersona();
+                depositar();
+                break;
+            case 4:
+                retirar();
                 break;
             case 5:
+                transferir();
+                break;
+            case 6:
                 salir();
                 break;
             default:
@@ -49,58 +58,93 @@ public class GUI_CuentaBancaria {
         }
     }
 
-    private void crearPersona() {
-        System.out.println("Crear persona");
+    private void crearcuenta() {
+        //String numeroDeCuenta, double saldo, String propietarioDeLaCuenta, TipoDeCuenta tipoDeCuenta
+        System.out.println("Crear cuenta bancaria");
         Scanner scanner = new Scanner(System.in);
-        System.out.println("Nombre: ");
-        String nombre = scanner.nextLine();
-        System.out.println("Apellido: ");
-        String apellido = scanner.nextLine();
-        System.out.println("Edad: ");
-        int edad = scanner.nextInt();
+
+        System.out.println(
+                "Ingrese el tipo de cuenta: " +
+                        "\n0. Cuenta de ahorros" +
+                        "\n1. Cuenta corriente"
+        );
+        int tipoDeCuentaEntero = scanner.nextInt();
         scanner.nextLine();
-        System.out.println("Identificacion: ");
-        String identificacion = scanner.nextLine();
-        System.out.println("Celular: ");
-        String celular = scanner.nextLine();
 
-        Persona persona = new Persona(nombre, apellido, edad, identificacion, celular);
-        serviciosPersona.guardarPersona(persona);
+        if(tipoDeCuentaEntero == 1 || tipoDeCuentaEntero == 0) {
+            TipoDeCuenta tipoDecuenta = TipoDeCuenta.values()[tipoDeCuentaEntero];
 
-    }
+            System.out.println("Ingrese el saldo de la cuenta");
+            double saldo = scanner.nextDouble();
+            scanner.nextLine();
 
-    private void listarPersonas() {
-        System.out.println("Listando personas");
-        List<Persona> personasEnBaseDatos = serviciosPersona.listarPersonas();
+            System.out.println("Ingrese el número de la cuenta");
+            String numeroCuenta = scanner.nextLine();
 
-        for (Persona personaEnBaseDatos : personasEnBaseDatos) {
-            System.out.println(personaEnBaseDatos.getNombre());
+            System.out.println("Ingrese el nombre del propietario de la cuenta");
+            String propietario = scanner.nextLine();
+
+            serviciosCuentaBancaria.guardarCuentaBancaria(
+                    new CuentaBancaria(numeroCuenta, saldo, propietario, tipoDecuenta)
+            );
+
+        } else {
+            System.out.println("El valor de la cuenta ingresado no es correcto");
         }
     }
 
-    private void buscarPersona() {
-        System.out.println("Buscar persona");
+    private CuentaBancaria buscarCuenta() {
         Scanner scanner = new Scanner(System.in);
-        System.out.println("Identificacion: ");
-        String identificacion = scanner.nextLine();
+        System.out.println("Ingrese el numero de la cuenta: ");
+        String numeroCuenta = scanner.nextLine();
+
         try {
-            Persona encontrada = serviciosPersona.buscarPersona(identificacion);
-            System.out.println("Persona encontrada: " + encontrada.getNombre());
+            CuentaBancaria cuenta = serviciosCuentaBancaria.buscarCuentaBancaria(numeroCuenta);
+            if(cuenta != null){
+                System.out.println(cuenta.toString());
+            } else {
+                System.out.println("La cuenta indicada no existe");
+            }
+            return cuenta;
         } catch (Exception e) {
-            System.out.println(e.getMessage());
+            System.out.println("Ha ocurrido un error al consultar la cuenta indicada");
+        }
+        return null;
+    }
+
+    private void depositar() {
+        CuentaBancaria cuenta = buscarCuenta();
+        if(cuenta != null) {
+            Scanner scanner = new Scanner(System.in);
+            System.out.println("Ingrese el saldo a depositar");
+            double saldo = scanner.nextDouble();
+            scanner.nextLine();
+            serviciosCuentaBancaria.depositar(cuenta, saldo);
         }
     }
 
-    private void eliminarPersona() {
-        System.out.println("Eliminar persona");
-        Scanner scanner = new Scanner(System.in);
-        System.out.println("Identificacion: ");
-        String identificacion = scanner.nextLine();
-        try {
-            serviciosPersona.eliminarPersona(identificacion);
-            System.out.println("Persona eliminada");
-        } catch (Exception e) {
-            System.out.println(e.getMessage());
+    private void retirar() {
+        CuentaBancaria cuenta = buscarCuenta();
+        if(cuenta != null) {
+            Scanner scanner = new Scanner(System.in);
+            System.out.println("Ingrese el saldo a retirar");
+            double saldo = scanner.nextDouble();
+            scanner.nextLine();
+            serviciosCuentaBancaria.retirar(cuenta, saldo);
+        }
+    }
+
+    private void transferir() {
+        System.out.println("Cuenta Origen a transferir");
+        CuentaBancaria cuentaOrigen = buscarCuenta();
+        System.out.println("Cuenta Destino a transferir");
+        CuentaBancaria cuentaDestino = buscarCuenta();
+        if(cuentaOrigen != null && cuentaDestino != null) {
+            Scanner scanner = new Scanner(System.in);
+            System.out.println("Ingrese el saldo a depositar");
+            double saldo = scanner.nextDouble();
+            scanner.nextLine();
+            serviciosCuentaBancaria.transferir(cuentaOrigen, cuentaDestino, saldo);
         }
     }
 

@@ -1,6 +1,7 @@
 package servicios;
 
 import entidades.CuentaBancaria;
+import enums.TipoDeCuenta;
 import repositorio.CuentaBancariaDB;
 import repositorio.Repositorio;
 
@@ -9,25 +10,50 @@ import java.util.List;
 public class ServiciosCuentaBancaria {
 
     private Repositorio repositorioCuentaBancaria;
+    private IServicioCuenta servicioCuenta;
 
     public ServiciosCuentaBancaria() {
         repositorioCuentaBancaria = new CuentaBancariaDB();
     }
 
-    public void guardarCuentaBancaria(CuentaBancaria newPerson) {
-        repositorioCuentaBancaria.guardar(newPerson);
+    public void guardarCuentaBancaria(CuentaBancaria cuenta) {
+        repositorioCuentaBancaria.guardar(cuenta);
     }
 
-    public List<CuentaBancaria> listarCuentasBancarias() {
-        return (List<CuentaBancaria>) repositorioCuentaBancaria.listar();
+    public CuentaBancaria buscarCuentaBancaria(String numeroCuenta) {
+        return (CuentaBancaria) repositorioCuentaBancaria.buscar(numeroCuenta);
     }
 
-    public CuentaBancaria buscarPersona(String identificador) throws Exception {
-        Object cuentaBancaria = repositorioCuentaBancaria.buscar(identificador);
-        if(cuentaBancaria == null) {
-            throw new Exception("No se encontro la cuenta bancaria");
+    public void retirar(CuentaBancaria cuenta, double saldoARetirar){
+        if(TipoDeCuenta.values()[cuenta.getTipoDeCuenta()].equals(TipoDeCuenta.CUENTADEAHORRO)){
+            servicioCuenta = new ServiciosCuentaAhorro();
+        } else {
+            servicioCuenta = new ServiciosCuentaCorriente();
         }
-        return (CuentaBancaria) cuentaBancaria;
+        cuenta = servicioCuenta.retirar(cuenta, saldoARetirar);
+
+        repositorioCuentaBancaria.actualizarSaldoYNumeroDeTrasancciones(cuenta);
     }
 
+    public void depositar(CuentaBancaria cuenta, double saldoADepositar){
+        if(TipoDeCuenta.values()[cuenta.getTipoDeCuenta()].equals(TipoDeCuenta.CUENTADEAHORRO)){
+            servicioCuenta = new ServiciosCuentaAhorro();
+        } else {
+            servicioCuenta = new ServiciosCuentaCorriente();
+        }
+        cuenta = servicioCuenta.depositar(cuenta, saldoADepositar);
+        repositorioCuentaBancaria.actualizarSaldoYNumeroDeTrasancciones(cuenta);
+    }
+
+    public void transferir(CuentaBancaria cuentaOrigen, CuentaBancaria cuentaDestino, double saldoATransferir){
+        if(TipoDeCuenta.values()[cuentaOrigen.getTipoDeCuenta()].equals(TipoDeCuenta.CUENTADEAHORRO)){
+            servicioCuenta = new ServiciosCuentaAhorro();
+        } else {
+            servicioCuenta = new ServiciosCuentaCorriente();
+        }
+        CuentaBancaria cuentas[] = servicioCuenta.transferir(cuentaOrigen, cuentaDestino, saldoATransferir);
+        for (CuentaBancaria cuenta: cuentas) {
+            repositorioCuentaBancaria.actualizarSaldoYNumeroDeTrasancciones(cuenta);
+        }
+    }
 }

@@ -1,6 +1,7 @@
 package repositorio;
 
 import entidades.CuentaBancaria;
+import enums.TipoDeCuenta;
 
 import java.sql.*;
 import java.util.ArrayList;
@@ -28,10 +29,11 @@ public class CuentaBancariaDB implements Repositorio{
                     + " numeroDeCuenta TEXT NOT NULL UNIQUE,\n"
                     + " saldo FLOAT NULL,\n"
                     + " propietarioDeLaCuenta TEXT NOT NULL ,\n"
-                    + " tipoDeCuenta INTEGER NOT NULL,\n"
-                    + " numeroDeDepositos INTEGER NULL\n"
-                    + " numeroDeRetiros INTEGER NULL\n"
-                    + " numeroDeTransferencias INTEGER NULL\n"
+                    + " tipoDeCuenta INTEGER NOT NULL, \n"
+                    + " numeroRetiros INTEGER NOT NULL, \n"
+                    + " numeroTransCuentaAhorro INTEGER NOT NULL, \n"
+                    + " numeroTransCuentaCorriente INTEGER NOT NULL, \n"
+                    + " numeroDepositos INTEGER NOT NULL \n"
                     + ");";
 
             Statement sentencia = conexion.createStatement();
@@ -46,11 +48,12 @@ public class CuentaBancariaDB implements Repositorio{
     public void guardar(Object objeto) {
         try (Connection conexion = DriverManager.getConnection(cadenaDeConexion)) {
             CuentaBancaria cuentaBancaria = (CuentaBancaria) objeto;
-            String sentenciaSql = "INSERT INTO Cuentas (numeroDeCuenta, saldo, propietarioDeLaCuenta, tipoDeCuenta, numeroDeDepositos, numeroDeRetiros, numeroDeTransferencias) " +
-                    " VALUES('" + cuentaBancaria.getNumeroDeCuenta() + "', '" + cuentaBancaria.getSaldo()
-                    + "', " + cuentaBancaria.getPropietarioDeLaCuenta() + ", '" + cuentaBancaria.getTipoDeCuenta()
-                    + "', '" + cuentaBancaria.getNumeroDeDepositos() +  "', '" + cuentaBancaria.getNumeroDeRetiros()
-                    + "', '" + cuentaBancaria.getNumeroDeTransferencias() + "');";
+            String sentenciaSql = "INSERT INTO Cuentas (numeroDeCuenta, saldo, propietarioDeLaCuenta, tipoDeCuenta, numeroRetiros, numeroTransCuentaAhorro, numeroTransCuentaCorriente, numeroDepositos) " +
+                    " VALUES('" + cuentaBancaria.getNumeroDeCuenta() + "', " + cuentaBancaria.getSaldo()
+                    + ", '" + cuentaBancaria.getPropietarioDeLaCuenta() + "', " + cuentaBancaria.getTipoDeCuenta()
+                    + ", " + cuentaBancaria.getNumeroDeRetiros() + ", " + cuentaBancaria.getNumeroDeTransferenciasACuentasCorrientes()
+                    + ", " + cuentaBancaria.getNumeroDeTransferenciasACuentasDeAhorro() + ", " + cuentaBancaria.getNumeroDeDepositos() +
+                    ");";
             Statement sentencia = conexion.createStatement();
             sentencia.execute(sentenciaSql);
         } catch (SQLException e) {
@@ -61,9 +64,22 @@ public class CuentaBancariaDB implements Repositorio{
     }
 
     @Override
-    public void actualizar(Object objeto) {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'actualizar'");
+    public void actualizarSaldoYNumeroDeTrasancciones(Object objeto) {
+        try (Connection conexion = DriverManager.getConnection(cadenaDeConexion)) {
+            CuentaBancaria cuentaBancaria = (CuentaBancaria) objeto;
+            String sentenciaSql = "UPDATE Cuentas SET saldo = " + cuentaBancaria.getSaldo() + ", " +
+                    "numeroRetiros = " + cuentaBancaria.getNumeroDeRetiros() + ", " +
+                    "numeroTransCuentaAhorro = " + cuentaBancaria.getNumeroDeTransferenciasACuentasDeAhorro() + ", " +
+                    "numeroTransCuentaCorriente = " + cuentaBancaria.getNumeroDeTransferenciasACuentasCorrientes() + ", " +
+                    "numeroDepositos = " + cuentaBancaria.getNumeroDeDepositos() + " " +
+                    " WHERE numeroDeCuenta = '" + cuentaBancaria.getNumeroDeCuenta() + "';";
+            Statement sentencia = conexion.createStatement();
+            sentencia.execute(sentenciaSql);
+        } catch (SQLException e) {
+            System.err.println("Error de conexión: " + e);
+        } catch (Exception e) {
+            System.err.println("Error " + e.getMessage());
+        }
     }
 
     @Override
@@ -79,11 +95,13 @@ public class CuentaBancariaDB implements Repositorio{
                 double saldo = resultadoConsulta.getDouble("saldo");
                 String propietarioDeLaCuenta = resultadoConsulta.getString("propietarioDeLaCuenta");
                 int tipoDeCuenta = resultadoConsulta.getInt("tipoDeCuenta");
-                int numeroDeDepositos = resultadoConsulta.getInt("numeroDeDepositos");
-                int numeroDeRetiros = resultadoConsulta.getInt("numeroDeRetiros");
-                int numeroDeTransferencias = resultadoConsulta.getInt("numeroDeTransferencias");
 
-                cuentaBancaria = new CuentaBancaria(numeroDeCuentaResultado, saldo, propietarioDeLaCuenta, tipoDeCuenta, numeroDeDepositos, numeroDeRetiros, numeroDeTransferencias);
+                cuentaBancaria = new CuentaBancaria(
+                        numeroDeCuentaResultado,
+                        saldo,
+                        propietarioDeLaCuenta,
+                        TipoDeCuenta.values()[tipoDeCuenta]
+                );
                 return cuentaBancaria;
             }
 
@@ -93,34 +111,4 @@ public class CuentaBancariaDB implements Repositorio{
         return null;
     }
 
-    @Override
-    public List<?> listar() {
-        List<CuentaBancaria> personas = new ArrayList<CuentaBancaria>();
-
-        try (Connection conexion = DriverManager.getConnection(cadenaDeConexion)) {
-            String sentenciaSql = "SELECT * FROM Cuentas";
-            PreparedStatement sentencia = conexion.prepareStatement(sentenciaSql);
-            ResultSet resultadoConsulta = sentencia.executeQuery();
-
-            if (resultadoConsulta != null) {
-                while (resultadoConsulta.next()) {
-                    CuentaBancaria cuentaBancaria = null;
-                    String numeroDeCuenta = resultadoConsulta.getString("numeroDeCuenta");
-                    double saldo = resultadoConsulta.getDouble("saldo");
-                    String propietarioDeLaCuenta = resultadoConsulta.getString("propietarioDeLaCuenta");
-                    int tipoDeCuenta = resultadoConsulta.getInt("tipoDeCuenta");
-                    int numeroDeDepositos = resultadoConsulta.getInt("numeroDeDepositos");
-                    int numeroDeRetiros = resultadoConsulta.getInt("numeroDeRetiros");
-                    int numeroDeTransferencias = resultadoConsulta.getInt("numeroDeTransferencias");
-
-                    cuentaBancaria = new CuentaBancaria(numeroDeCuenta, saldo, propietarioDeLaCuenta, tipoDeCuenta, numeroDeDepositos, numeroDeRetiros, numeroDeTransferencias);
-                    Cuentas.add(cuentaBancaria);
-                }
-                return Cuentas;
-            }
-        } catch (SQLException e) {
-            System.err.println("Error de conexión: " + e);
-        }
-        return null;
-    }
 }
